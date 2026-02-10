@@ -47,5 +47,7 @@ jobs:
       - name: Push Docker image
         if: github.ref == 'refs/heads/main'
         run: |
-          docker tag first-pipeline:latest ghcr.io/${{ github.repository }}:latest
-          docker push ghcr.io/${{ github.repository }}:latest
+          # GHCR/Docker image names must be lowercase; github.repository can contain uppercase.
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          docker tag first-pipeline:latest "$IMAGE"
+          docker push "$IMAGE"
