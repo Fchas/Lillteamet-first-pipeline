@@ -65,8 +65,17 @@ jobs:
           exit-code: 0
           severity: 'CRITICAL,HIGH'
 
-      - name: Login to GitHub Container Registry
+      - name: Check GHCR credentials
         if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -z "${{ secrets.PAT_GHCR }}" ]; then
+            echo "HAS_CREDENTIALS=false" >> $GITHUB_ENV
+          else
+            echo "HAS_CREDENTIALS=true" >> $GITHUB_ENV
+          fi
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/main' && env.HAS_CREDENTIALS == 'true'
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -74,6 +83,12 @@ jobs:
           password: ${{ secrets.PAT_GHCR }}
 
       - name: Push Docker image
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && env.HAS_CREDENTIALS == 'true'
         run: |
           docker push "${IMAGE_NAME}"
+
+      - name: ⚠️ GHCR Push Skipped
+        if: github.ref == 'refs/heads/main' && env.HAS_CREDENTIALS == 'false'
+        run: |
+          echo "::warning::GHCR push skipped - PAT_GHCR secret not configured"
+          echo "To enable GHCR pushing, see GHCR_SETUP.md"
