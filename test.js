@@ -1,4 +1,4 @@
-const http = require('http');
+import { request } from 'http';
 
 function test() {
   const options = {
@@ -10,7 +10,7 @@ function test() {
 
   console.log('Running tests...');
 
-  const req = http.request(options, (res) => {
+  const req = request(options, (res) => {
     let data = '';
     res.on('data', (chunk) => { data += chunk; });
     res.on('end', () => {
@@ -39,7 +39,7 @@ function test() {
 }
 
 // Start server, run test, then exit
-const app = require('./index.js');
+import app from './index.js';
 const server = app.listen(3000, () => {
   setTimeout(() => {
     test();
