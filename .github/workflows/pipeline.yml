@@ -37,14 +37,24 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Set image name (lowercase)
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            IMAGE_NAME="ghcr.io/${{ github.repository }}:latest"
+            echo "IMAGE_NAME=${IMAGE_NAME,,}" >> $GITHUB_ENV
+          else
+            echo "IMAGE_NAME=pipeline:latest" >> $GITHUB_ENV
+          fi
+
       - name: Build Docker image
-        run: docker build -t pipeline:latest .
+        run: |
+          docker build -t "${IMAGE_NAME}" .
 
       - name: Run Trivy security scan
         continue-on-error: true
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: pipeline:latest
+          image-ref: ${{ env.IMAGE_NAME || 'pipeline:latest' }}
           # Non-blocking scan; don't fail the workflow on findings.
           exit-code: 0
           severity: 'CRITICAL,HIGH'
@@ -60,9 +70,4 @@ jobs:
       - name: Push Docker image
         if: github.ref == 'refs/heads/main'
         run: |
-          # GHCR image names must be lowercase; github.repository can contain uppercase.
-          IMAGE="ghcr.io/${{ github.repository }}:latest"
-          # Convert to lowercase
-          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          docker tag pipeline:latest "$IMAGE"
-          docker push "$IMAGE"
+          docker push "${IMAGE_NAME}"
