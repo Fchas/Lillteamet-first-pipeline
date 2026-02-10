@@ -7,6 +7,11 @@ on:
     branches: [ main ]
     types: [opened, synchronize, reopened]
 
+# Prevent duplicate runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Needed to push images to GHCR using GITHUB_TOKEN.
 permissions:
   contents: read
@@ -56,6 +61,8 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           # GHCR image names must be lowercase; github.repository can contain uppercase.
-          IMAGE="ghcr.io/$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]'):latest"
+          IMAGE="ghcr.io/${{ github.repository }}:latest"
+          # Convert to lowercase
+          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
           docker tag pipeline:latest "$IMAGE"
           docker push "$IMAGE"
