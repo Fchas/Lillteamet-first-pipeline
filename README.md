@@ -3,7 +3,7 @@
 
 ![CI/CD Pipeline](https://github.com/YOUR_USERNAME/first-pipeline/workflows/CI%2FCD%20Pipeline/badge.svg)
 
-Live deployment: [YOUR_DEPLOYED_URL]
+Live deployment: [https://lillteamet-first-pipeline.onrender.com/]
 
 ## About
 Week 4 Boiler Room Hackathon - Building a complete CI/CD pipeline.
