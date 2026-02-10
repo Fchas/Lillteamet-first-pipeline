@@ -1,9 +1,8 @@
-# Lillteamet-first-pipeline
 # First Pipeline Challenge
 
-![CI/CD Pipeline](https://github.com/YOUR_USERNAME/first-pipeline/workflows/CI%2FCD%20Pipeline/badge.svg)
+[![CI/CD Pipeline](https://github.com/Fchas/Lillteamet-first-pipeline/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Fchas/Lillteamet-first-pipeline/actions/workflows/pipeline.yml)
 
-Live deployment: [https://lillteamet-first-pipeline.onrender.com/]
+Live deployment: https://lillteamet-first-pipeline.onrender.com/
 
 ## About
 Week 4 Boiler Room Hackathon - Building a complete CI/CD pipeline.
