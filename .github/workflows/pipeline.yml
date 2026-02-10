@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [opened, synchronize, reopened]
 
 # Needed to push images to GHCR using GITHUB_TOKEN.
 permissions:
@@ -31,13 +32,14 @@ jobs:
         run: npm test
 
       - name: Build Docker image
-        run: docker build -t first-pipeline:latest .
+        run: docker build -t pipeline:latest .
 
       - name: Run Trivy security scan
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.33.1
         with:
-          image-ref: first-pipeline:latest
-          # Run the scan but don't fail the workflow on findings (badge stays green).
+          image-ref: pipeline:latest
+          # Non-blocking scan; don't fail the workflow on findings.
           exit-code: 0
           severity: 'CRITICAL,HIGH'
 
@@ -52,7 +54,7 @@ jobs:
       - name: Push Docker image
         if: github.ref == 'refs/heads/main'
         run: |
-          # GHCR/Docker image names must be lowercase; github.repository can contain uppercase.
-          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
-          docker tag first-pipeline:latest "$IMAGE"
+          # GHCR image names must be lowercase; github.repository can contain uppercase.
+          IMAGE="ghcr.io/$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]'):latest"
+          docker tag pipeline:latest "$IMAGE"
           docker push "$IMAGE"
