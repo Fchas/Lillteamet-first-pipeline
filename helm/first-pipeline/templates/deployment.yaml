@@ -49,12 +49,8 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
-        - name: app
-          mountPath: /app
       volumes:
       - name: tmp
-        emptyDir: {}
-      - name: app
         emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:

@@ -83,12 +83,8 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
-        - name: app
-          mountPath: /app
       
       # Volumes
       volumes:
       - name: tmp
-        emptyDir: {}
-      - name: app
         emptyDir: {}
