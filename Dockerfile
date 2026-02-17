@@ -3,7 +3,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install -g npm@11.10.0 \
+ && npm ci --omit=dev
 
 COPY . .
 
