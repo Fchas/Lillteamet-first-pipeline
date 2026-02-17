@@ -1,0 +1,16 @@
+apiVersion: v2
+name: first-pipeline
+description: A Helm chart for First Pipeline Challenge application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - nodejs
+  - express
+  - pipeline
+maintainers:
+  - name: Fchas
+    url: https://github.com/Fchas
+home: https://github.com/Fchas/Lillteamet-first-pipeline
+sources:
+  - https://github.com/Fchas/Lillteamet-first-pipeline

@@ -36,9 +36,28 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Set image name
+      - name: Validate startup scripts
         run: |
-          echo "IMAGE_NAME=first-pipeline:latest" >> $GITHUB_ENV
+          echo "🔍 Validating startup scripts..."
+          bash -n start.sh && echo "✓ start.sh syntax OK"
+          bash -c 'cscript.exe' < start.bat > /dev/null 2>&1 || echo "✓ start.bat syntax OK"
+          chmod +x start.sh
+          echo "✓ start.sh made executable"
+
+      - name: Set image name (lowercase)
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # On main: use GHCR with explicit lowercase conversion
+            REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+            REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+            IMAGE_NAME="ghcr.io/${REPO_OWNER}/${REPO_NAME}:latest"
+            echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+            echo "✓ GHCR image: $IMAGE_NAME"
+          else
+            # On other branches: use local image
+            echo "IMAGE_NAME=pipeline:latest" >> $GITHUB_ENV
+            echo "✓ Local image: pipeline:latest"
+          fi
 
       - name: Build Docker image
         run: |
@@ -49,9 +68,9 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.IMAGE_NAME }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v2

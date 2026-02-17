@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: first-pipeline
+  namespace: first-pipeline
+  labels:
+    app: first-pipeline
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: first-pipeline
+  template:
+    metadata:
+      labels:
+        app: first-pipeline
+        version: v1
+    spec:
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      
+      containers:
+      - name: first-pipeline
+        # Use local image for Minikube (no pull needed)
+        image: first-pipeline:latest
+        imagePullPolicy: Never  # Important for Minikube local images
+        
+        # Container security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+              - ALL
+        
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: first-pipeline-config
+        
+        # Liveness probe - restart pod if unhealthy
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: http
+            httpHeaders:
+            - name: Custom-Header
+              value: Awesome
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Readiness probe - remove from load balancer if not ready
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 2
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        
+        # Volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: app
+          mountPath: /app
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: app
+        emptyDir: {}
