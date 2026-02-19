@@ -53,6 +53,26 @@ kubectl apply -f k8s/
 helm install first-pipeline ./helm/first-pipeline -n first-pipeline --create-namespace
 ```
 
+## 🛑 Cleanup & Shutdown
+
+Need to stop everything or do a factory reset?
+
+```bash
+# Linux/macOS
+./shutdown.sh
+
+# Windows
+shutdown.bat
+```
+
+Choose from:
+- **Full Cleanup** - Stop Docker Compose + delete K8s namespace + configure Minikube
+- **Docker Compose Only** - Stop just Docker Compose
+- **Kubernetes Only** - Kill port-forwards and remove pods
+- **Advanced** - Pick exactly what to clean
+
+---
+
 ## Architecture
 
 ### Docker Architecture

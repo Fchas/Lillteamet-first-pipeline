@@ -186,7 +186,75 @@ helm install first-pipeline ./helm/first-pipeline -n first-pipeline --create-nam
 
 ---
 
-## 🔍 Verify It's Working
+## � Cleanup & Shutdown
+
+### Quick Factory Reset
+When you're done or need a clean restart:
+
+**Linux/macOS:**
+```bash
+./shutdown.sh
+# Choose your cleanup option:
+# 1) Full Cleanup   - Remove everything
+# 2) Docker Compose - Stop just Docker Compose
+# 3) Kubernetes     - Remove pods & port-forwards
+# 4) Advanced       - Custom cleanup
+```
+
+**Windows:**
+```bash
+shutdown.bat
+# Same menu as above
+```
+
+### What Gets Cleaned
+- ✓ Kills all `kubectl port-forward` processes
+- ✓ Removes `first-pipeline` namespace (all pods deleted)
+- ✓ Stops Docker Compose (if running)
+- ✓ Optional: Stop/Delete Minikube cluster
+
+### Examples
+
+**Quick cleanup (keep cluster running):**
+```bash
+./shutdown.sh
+# Choose: 1) Full Cleanup → 1) Keep cluster running
+```
+
+**Stop everything (save resources):**
+```bash
+./shutdown.sh
+# Choose: 1) Full Cleanup → 2) Stop cluster
+```
+
+**Full factory reset:**
+```bash
+./shutdown.sh
+# Choose: 1) Full Cleanup → 3) Delete cluster
+# Answer: yes
+```
+
+### Manual Cleanup Commands
+```bash
+# Kill port-forwards
+pkill -f "kubectl port-forward"
+
+# Stop Docker Compose
+docker-compose down
+
+# Delete all resources
+kubectl delete namespace first-pipeline
+
+# Stop Minikube
+minikube stop -p first-pipeline
+
+# Delete Minikube cluster
+minikube delete -p first-pipeline
+```
+
+---
+
+## �🔍 Verify It's Working
 
 ### Get Status
 ```bash

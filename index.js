@@ -10,7 +10,7 @@ app.get('/status', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('First Pipeline Challenge - Week 4');
+  res.send('Webpage now works - Lillteamet');
 });
 
 // Only bind a port when running as the entrypoint (not when required by tests).
