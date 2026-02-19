@@ -29,7 +29,7 @@ start.bat
 ```
 
 Choose your deployment method from the interactive menu.
-https://ibb.co/4RqP9ppL
+![Pipeline screenshot](https://i.ibb.co/DfJ5sQQF/Sk-rmbild-2026-02-19-131733.png)
 
 ---
 
