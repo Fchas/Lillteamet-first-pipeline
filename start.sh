@@ -143,7 +143,7 @@ start_minikube() {
     
     print_section "Checking prerequisites..."
     if ! check_docker; then
-        print_error "Docker is required"
+        print_error "Docker is required to build the application image"
         return 1
     fi
     print_success "Docker ready"
@@ -154,7 +154,19 @@ start_minikube() {
     fi
     print_success "kubectl ready"
     
+    if ! check_minikube; then
+        print_error "minikube is not installed"
+        print_info "The setup script will attempt to install it..."
+    fi
+    
     print_section "Starting Minikube deployment..."
+    print_info "This process will:"
+    echo "  1. Install Minikube (if needed)"
+    echo "  2. Create a local Kubernetes cluster"
+    echo "  3. Build the Docker image"
+    echo "  4. Load the image into Minikube"
+    echo "  5. Deploy the application"
+    echo ""
     
     cd "$REPO_ROOT"
     
@@ -162,21 +174,29 @@ start_minikube() {
     if [ -f "scripts/minikube-setup.sh" ]; then
         bash scripts/minikube-setup.sh full-setup
         
+        if [ $? -ne 0 ]; then
+            print_error "Minikube deployment failed"
+            return 1
+        fi
+        
         echo ""
         print_success "Minikube deployment complete!"
         
         echo ""
-        print_section "Access Information:"
-        echo "  Use port-forward:"
-        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME 8080:80${NC}"
-        echo "  Then open: http://localhost:8080"
-        
+        print_section "Next Steps:"
+        echo "  To access your application, run:"
         echo ""
+        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME 8080:80${NC}"
+        echo ""
+        echo "  Then open: http://localhost:8080"
+        echo ""
+        
         print_section "Useful Commands:"
         echo "  View logs:     kubectl logs -f -n $NAMESPACE -l app=$PROJECT_NAME"
-        echo "  Dashboard:     $REPO_ROOT/scripts/minikube-setup.sh dashboard"
-        echo "  Stop:          $REPO_ROOT/scripts/minikube-setup.sh stop"
-        echo "  Delete:        $REPO_ROOT/scripts/minikube-setup.sh delete"
+        echo "  Dashboard:     minikube dashboard"
+        echo "  SSH to node:   minikube ssh"
+        echo "  Stop cluster:  minikube stop"
+        echo "  Delete cluster: minikube delete"
     else
         print_error "Minikube setup script not found"
         return 1

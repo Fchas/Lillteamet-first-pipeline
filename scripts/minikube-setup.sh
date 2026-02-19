@@ -141,6 +141,54 @@ load_image() {
     print_success "Image loaded: $IMAGE"
 }
 
+# Build Docker image
+build_image() {
+    print_header "Building Docker Image"
+    
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+    IMAGE_NAME="first-pipeline:latest"
+    
+    print_info "Building Docker image: $IMAGE_NAME"
+    print_info "Location: $REPO_ROOT"
+    
+    cd "$REPO_ROOT"
+    docker build -t "$IMAGE_NAME" .
+    
+    if [ $? -ne 0 ]; then
+        print_error "Failed to build Docker image"
+        return 1
+    fi
+    
+    print_success "Docker image built successfully"
+}
+
+# Load image into Minikube
+load_image_to_minikube() {
+    print_header "Loading Image into Minikube"
+    
+    IMAGE_NAME="first-pipeline:latest"
+    
+    if ! minikube status -p "$CLUSTER_NAME" &>/dev/null; then
+        print_error "Cluster not running. Create it first:"
+        return 1
+    fi
+    
+    print_info "Loading image: $IMAGE_NAME into Minikube"
+    
+    minikube -p "$CLUSTER_NAME" image load "$IMAGE_NAME"
+    
+    if [ $? -ne 0 ]; then
+        print_error "Failed to load image into Minikube"
+        return 1
+    fi
+    
+    print_success "Image loaded into Minikube successfully"
+    
+    print_info "Verifying image in Minikube..."
+    eval $(minikube -p "$CLUSTER_NAME" docker-env)
+    docker images | grep first-pipeline
+}
+
 # Deploy to Minikube
 deploy() {
     print_header "Deploying to Minikube"
@@ -151,10 +199,36 @@ deploy() {
         exit 1
     fi
     
+    print_info "Building and loading Docker image..."
+    build_image
+    if [ $? -ne 0 ]; then
+        print_error "Failed to build image"
+        return 1
+    fi
+    
+    load_image_to_minikube
+    if [ $? -ne 0 ]; then
+        print_error "Failed to load image to Minikube"
+        return 1
+    fi
+    
     configure_kubectl
     
     print_info "Deploying application..."
-    kubectl apply -f k8s/
+    
+    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+    cd "$REPO_ROOT"
+    
+    # Apply namespace first
+    kubectl apply -f k8s/namespace.yaml
+    
+    # Apply config and other resources
+    kubectl apply -f k8s/configmap.yaml
+    kubectl apply -f k8s/service.yaml
+    kubectl apply -f k8s/hpa.yaml
+    
+    # Apply Minikube-specific deployment
+    kubectl apply -f k8s/deployment-minikube.yaml
     
     print_success "Application deployed"
     
@@ -239,12 +313,15 @@ main() {
             configure_kubectl
             verify_setup
             ;;
+        build)
+            build_image
+            ;;
         deploy)
             deploy
             show_access
             ;;
         load-image)
-            load_image "$2"
+            load_image_to_minikube
             ;;
         access)
             show_access
@@ -287,6 +364,8 @@ main() {
             configure_kubectl
             verify_setup
             echo ""
+            print_info "Now building, loading and deploying the application..."
+            echo ""
             deploy
             echo ""
             show_access
@@ -299,7 +378,8 @@ main() {
             echo "Commands:"
             echo "  install      - Install Minikube CLI"
             echo "  create       - Create Minikube cluster"
-            echo "  deploy       - Deploy app to cluster"
+            echo "  build        - Build Docker image"
+            echo "  deploy       - Build, load image, and deploy app to cluster"
             echo "  load-image   - Load Docker image into Minikube"
             echo "  access       - Show access methods"
             echo "  status       - Check cluster status"

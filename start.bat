@@ -60,7 +60,14 @@ goto menu
 
 :minikube
 echo.
-echo Starting Minikube...
+echo Starting Minikube deployment...
+echo This will:
+echo   1. Install Minikube (if needed)
+echo   2. Create a local Kubernetes cluster
+echo   3. Build the Docker image
+echo   4. Load the image into Minikube
+echo   5. Deploy the application
+echo.
 if not exist "scripts\minikube-setup.sh" (
     echo ✗ Minikube setup script not found
     pause
@@ -71,12 +78,20 @@ if !errorlevel! equ 0 (
     echo.
     echo ✓ Minikube deployment complete!
     echo.
-    echo Access the application:
+    echo Next steps - to access your application:
     echo   kubectl port-forward -n first-pipeline svc/first-pipeline 8080:80
     echo   Then open http://localhost:8080
+    echo.
+    echo Useful commands:
+    echo   View logs:        kubectl logs -f -n first-pipeline -l app=first-pipeline
+    echo   Kubernetes dashboard: minikube dashboard
+    echo   SSH to node:      minikube ssh
+    echo   Stop cluster:     minikube stop
+    echo   Delete cluster:   minikube delete
 ) else (
     echo.
-    echo ✗ Minikube setup failed
+    echo ✗ Minikube setup failed. Please check the error messages above.
+    echo Make sure Docker is running and installed.
 )
 pause
 goto menu
