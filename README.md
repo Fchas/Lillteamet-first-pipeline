@@ -7,18 +7,28 @@ Live deployment: https://lillteamet-first-pipeline.onrender.com/
 ## About
 Week 4 Boiler Room Hackathon - Building a complete CI/CD pipeline with Docker and Kubernetes support.
 
-## 🚀 Quick Start (Easiest Way)
+## 🚀 Quick Start
 
-### Just Run This Command
+### 1. Clone repo
 ```bash
-# Linux/macOS
-./start.sh
+git clone https://github.com/Fchas/Lillteamet-first-pipeline.git
+cd Lillteamet-first-pipeline
+```
 
-# Windows
+### 2. Run startup script
+
+Linux/macOS:
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+Windows:
+```bat
 start.bat
 ```
 
-**That's it!** Choose your deployment method from the interactive menu.
+Choose your deployment method from the interactive menu.
 
 ---
 
