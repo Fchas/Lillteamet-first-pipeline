@@ -29,6 +29,7 @@ start.bat
 ```
 
 Choose your deployment method from the interactive menu.
+https://ibb.co/4RqP9ppL
 
 ---
 
