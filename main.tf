@@ -1,5 +1,3 @@
-# main.tf — Terraform config for your team namespace
-
 terraform {
   required_providers {
     kubernetes = {
@@ -9,36 +7,68 @@ terraform {
   }
 }
 
-# Use your existing kubeconfig — the same one from Week 6
 provider "kubernetes" {
   config_path = "~/.kube/config"
-  # Or if you use KUBECONFIG env var, Terraform picks it up automatically
 }
 
-# Ensure target namespace exists
-resource "kubernetes_namespace" "team" {
+resource "kubernetes_deployment" "redis" {
   metadata {
-    name = "lillteamet"
+    name      = "redis"
+    namespace = "lillteamet"
   }
-}
 
-# Create a ConfigMap in your team namespace
-resource "kubernetes_config_map" "app_config" {
-  depends_on = [kubernetes_namespace.team]
+  spec {
+    replicas = 2
 
-  metadata {
-    name      = "terraform-demo"
-    namespace = "lillteamet"  # Replace: girly-pops, m4k-gang, etc.
+    selector {
+      match_labels = {
+        app = "redis"
+      }
+    }
 
-    labels = {
-      "managed-by" = "terraform"
-      "team"       = "lillteamet"
+    template {
+      metadata {
+        labels = {
+          app = "redis"
+        }
+      }
+
+      spec {
+        container {
+          name  = "redis"
+          image = "redis:7-alpine"
+
+          port {
+            container_port = 6379
+          }
+        }
+      }
     }
   }
+}
 
-  data = {
-    APP_ENV     = "production"
-    APP_VERSION = "2.0.0"
-    MANAGED_BY  = "terraform"
+resource "kubernetes_service" "redis" {
+  metadata {
+    name      = "redis"
+    namespace = "lillteamet"
+  }
+ 
+lifecycle {
+  ignore_changes = [
+    metadata[0].annotations
+  ]
+}
+
+  spec {
+    selector = {
+      app = "redis"
+    }
+
+    port {
+      port        = 6379
+      target_port = 6379
+    }
+
+    type = "ClusterIP"
   }
 }
