@@ -68,12 +68,15 @@ jobs:
       - name: Run Trivy security scan (Main branch only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          image-ref: ${{ steps.docker_build.outputs.image_tag }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/workspace" \
+            aquasec/trivy:0.65.0 image \
+            --severity CRITICAL,HIGH \
+            --format sarif \
+            --output /workspace/trivy-results.sarif \
+            "${{ steps.docker_build.outputs.image_tag }}"
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
