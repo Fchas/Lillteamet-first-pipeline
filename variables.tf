@@ -4,7 +4,7 @@ variable "namespace" {
   description = "Your team's Kubernetes namespace"
   type        = string
   # Replace with your namespace:
-  default     = "lillteamet"
+  default = "lillteamet"
 }
 
 variable "team_name" {
