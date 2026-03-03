@@ -56,3 +56,7 @@ chmod +x start.bat
 
 chmod +x shutdown.sh
 chmod +x shutdown.bat
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
