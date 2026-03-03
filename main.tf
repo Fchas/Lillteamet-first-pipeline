@@ -11,64 +11,28 @@ provider "kubernetes" {
   config_path = "~/.kube/config"
 }
 
-resource "kubernetes_deployment" "redis" {
+resource "kubernetes_namespace" "team" {
   metadata {
-    name      = "redis"
-    namespace = "lillteamet"
-  }
-
-  spec {
-    replicas = 2
-
-    selector {
-      match_labels = {
-        app = "redis"
-      }
-    }
-
-    template {
-      metadata {
-        labels = {
-          app = "redis"
-        }
-      }
-
-      spec {
-        container {
-          name  = "redis"
-          image = "redis:7-alpine"
-
-          port {
-            container_port = 6379
-          }
-        }
-      }
-    }
+    name = var.namespace
   }
 }
 
-resource "kubernetes_service" "redis" {
+resource "kubernetes_config_map" "app_config" {
+  depends_on = [kubernetes_namespace.team]
+
   metadata {
-    name      = "redis"
-    namespace = "lillteamet"
+    name      = "terraform-demo"
+    namespace = var.namespace
+
+    labels = {
+      "managed-by" = "terraform"
+      "team"       = var.namespace
+    }
   }
- 
-lifecycle {
-  ignore_changes = [
-    metadata[0].annotations
-  ]
-}
 
-  spec {
-    selector = {
-      app = "redis"
-    }
-
-    port {
-      port        = 6379
-      target_port = 6379
-    }
-
-    type = "ClusterIP"
+  data = {
+    APP_ENV     = "production"
+    APP_VERSION = "2.0.0"
+    MANAGED_BY  = "terraform"
   }
 }
