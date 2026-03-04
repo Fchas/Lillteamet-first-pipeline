@@ -6,8 +6,10 @@ resource "kubernetes_deployment" "redis" {
     namespace = var.namespace
 
     labels = {
-      app        = "redis"
-      managed-by = "terraform"
+      app         = "redis"
+      managed-by  = "terraform"
+      team        = var.team_name
+      environment = var.environment
     }
   }
 
@@ -30,7 +32,7 @@ resource "kubernetes_deployment" "redis" {
       spec {
         container {
           name  = "redis"
-          image = "redis:7-alpine"
+          image = var.redis_image
 
           port {
             container_port = 6379
