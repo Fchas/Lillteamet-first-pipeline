@@ -1,0 +1,23 @@
+output "namespace" {
+  description = "The team namespace"
+  value       = var.namespace
+}
+
+output "redis_service" {
+  description = "Redis service DNS name"
+  value       = module.redis.service_dns
+}
+
+output "app_url" {
+  description = "Public application URL"
+  value       = "https://${var.namespace}.chas.retro87.se"
+}
+
+output "resource_summary" {
+  description = "Summary of deployed resources"
+  value = {
+    deployments = ["redis", "api", "frontend"]
+    services    = ["redis-service", "api-service", "frontend-service"]
+    namespace   = var.namespace
+  }
+}
