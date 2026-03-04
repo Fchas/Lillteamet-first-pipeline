@@ -66,3 +66,9 @@ temp/
 # Minikube
 minikube
 .minikube/
+
+# Terraform artifacts (never include in image context)
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan

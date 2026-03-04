@@ -39,6 +39,7 @@ jobs:
       - name: Validate Terraform
         run: |
           set -euo pipefail
+          export TF_DATA_DIR="$RUNNER_TEMP/terraform-data"
           terraform fmt -check -recursive
           terraform init -backend=false -input=false
           terraform validate
