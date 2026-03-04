@@ -25,22 +25,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Validate Terraform
+        run: |
+          set -euo pipefail
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
 
       - name: Run tests
         run: npm test
 
       - name: Validate startup scripts
         run: |
+          set -euo pipefail
           echo "🔍 Validating startup scripts..."
           bash -n start.sh && echo "✓ start.sh syntax OK"
-          bash -c 'cscript.exe' < start.bat > /dev/null 2>&1 || echo "✓ start.bat syntax OK"
           chmod +x start.sh
           echo "✓ start.sh made executable"
 
@@ -67,8 +77,8 @@ jobs:
 
       - name: Run Trivy security scan (Main branch only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        continue-on-error: true
         run: |
+          set -euo pipefail
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$PWD:/workspace" \

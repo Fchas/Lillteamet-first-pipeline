@@ -280,8 +280,8 @@ start_helm() {
     
     cd "$REPO_ROOT"
     
-    print_info "Installing Helm chart..."
-    helm install "$PROJECT_NAME" ./helm/"$PROJECT_NAME" \
+    print_info "Installing/upgrading Helm chart..."
+    helm upgrade --install "$PROJECT_NAME" ./helm/"$PROJECT_NAME" \
         -n "$NAMESPACE" --create-namespace
     
     print_success "Helm deployment complete!"
