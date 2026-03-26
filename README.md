@@ -7,24 +7,16 @@ Live deployment: https://lillteamet-first-pipeline.onrender.com/
 ## About
 Week 4 Boiler Room Hackathon - Building a complete CI/CD pipeline with Docker and Kubernetes support.
 
-## 🚀 Quick Start
+## Requirements
+- **Git** - klona repo, hämta uppdateringar och pusha kod.
+- **Node.js 18+ and npm** - köra appen lokalt samt installera och köra tester.
+- **Docker (Docker Engine/Desktop)** - bygga och köra container-imagen.
+- **Terraform** - validera och provisionera IaC-delarna i projektet.
+- **kubectl** - deploya och hantera Kubernetes-resurser.
+- **Helm** - installera/uppdatera appen via Helm-chart.
+- **Minikube (optional)** - lokal Kubernetes-kluster för test utan moln.
 
-### 1. Clone repo
-```bash
-git clone https://github.com/Fchas/Lillteamet-first-pipeline.git
-cd Lillteamet-first-pipeline
-```
-
-### Requirements
-- Git
-- Node.js 18+ and npm
-- Docker (Docker Engine/Desktop)
-- Terraform
-- kubectl
-- Helm
-- Minikube (optional, for local Kubernetes)
-
-### Install dependencies (recommended)
+## Install dependencies (recommended)
 Linux/macOS:
 ```bash
 chmod +x scripts/install-deps.sh
@@ -35,6 +27,14 @@ Windows (PowerShell as Administrator):
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\scripts\install-deps.ps1
+```
+
+## 🚀 Quick Start
+
+### 1. Clone repo
+```bash
+git clone https://github.com/Fchas/Lillteamet-first-pipeline.git
+cd Lillteamet-first-pipeline
 ```
 
 ### 2. Run startup script
