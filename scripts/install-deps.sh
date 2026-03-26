@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Portable dependency installer for this repository.
 # Supports: apt, dnf, yum, pacman, zypper, brew
+#
+# Optional env vars:
+#   DRY_RUN=1                Print commands instead of executing
+#   PKG_MANAGER_OVERRIDE=apt Force a package manager branch
 
 REQUIRED_TOOLS=(git curl node npm docker terraform kubectl helm)
 OPTIONAL_TOOLS=(minikube)
@@ -14,7 +18,14 @@ error() { printf '[ERR]  %s\n' "$*"; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# Use sudo only when needed and available.
+run() {
+  if [ "${DRY_RUN:-0}" = "1" ]; then
+    printf '[DRY]  %s\n' "$*"
+    return 0
+  fi
+  eval "$*"
+}
+
 SUDO=""
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   if have sudo; then
@@ -25,82 +36,136 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
   fi
 fi
 
-PKG_MANAGER=""
-if have apt-get; then
-  PKG_MANAGER="apt"
-elif have dnf; then
-  PKG_MANAGER="dnf"
-elif have yum; then
-  PKG_MANAGER="yum"
-elif have pacman; then
-  PKG_MANAGER="pacman"
-elif have zypper; then
-  PKG_MANAGER="zypper"
-elif have brew; then
-  PKG_MANAGER="brew"
-else
-  error "No supported package manager found (apt/dnf/yum/pacman/zypper/brew)."
-  exit 1
+PKG_MANAGER="${PKG_MANAGER_OVERRIDE:-}"
+if [ -z "$PKG_MANAGER" ]; then
+  if have apt-get; then
+    PKG_MANAGER="apt"
+  elif have dnf; then
+    PKG_MANAGER="dnf"
+  elif have yum; then
+    PKG_MANAGER="yum"
+  elif have pacman; then
+    PKG_MANAGER="pacman"
+  elif have zypper; then
+    PKG_MANAGER="zypper"
+  elif have brew; then
+    PKG_MANAGER="brew"
+  else
+    error "No supported package manager found (apt/dnf/yum/pacman/zypper/brew)."
+    exit 1
+  fi
 fi
 
 info "Detected package manager: ${PKG_MANAGER}"
 
-install_with_apt() {
-  $SUDO apt-get update
-  # Base tools available in Debian/Ubuntu/Kali repos.
-  $SUDO apt-get install -y git curl ca-certificates gnupg lsb-release \
-    nodejs npm docker.io docker-compose kubectl helm || true
+install_helm_fallback() {
+  if have helm; then return 0; fi
+  warn "Installing Helm via official install script fallback..."
+  run "curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | ${SUDO:+$SUDO }bash" || true
+}
 
-  # Terraform is not available in all apt repos by default.
-  if ! have terraform; then
-    warn "Terraform not found after apt install. Attempting HashiCorp apt repo setup."
-    curl -fsSL https://apt.releases.hashicorp.com/gpg | $SUDO gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-      | $SUDO tee /etc/apt/sources.list.d/hashicorp.list >/dev/null
-    $SUDO apt-get update
-    $SUDO apt-get install -y terraform || true
+install_terraform_fallback() {
+  if have terraform; then return 0; fi
+
+  # Try HashiCorp apt repo only for Debian/Ubuntu codename that repo supports.
+  if [ "$PKG_MANAGER" = "apt" ] && have lsb_release; then
+    local codename
+    codename="$(lsb_release -cs 2>/dev/null || true)"
+    case "$codename" in
+      bookworm|bullseye|jammy|focal|noble)
+        warn "Attempting Terraform install via HashiCorp apt repo for '${codename}'"
+        run "curl -fsSL https://apt.releases.hashicorp.com/gpg | ${SUDO:+$SUDO }gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg" || true
+        run "echo 'deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com ${codename} main' | ${SUDO:+$SUDO }tee /etc/apt/sources.list.d/hashicorp.list >/dev/null" || true
+        run "${SUDO:+$SUDO }apt-get update" || true
+        run "${SUDO:+$SUDO }apt-get install -y terraform" || true
+        ;;
+      *)
+        warn "Skipping HashiCorp apt repo for unsupported distro codename '${codename}'"
+        ;;
+    esac
   fi
 
-  # Minikube optional.
-  $SUDO apt-get install -y minikube || true
+  if have terraform; then return 0; fi
 
-  # Start docker daemon when available.
+  warn "Installing Terraform via official zip fallback..."
+  local arch tfv url
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64|amd64) arch="amd64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *)
+      warn "Unsupported architecture '${arch}' for Terraform auto-install"
+      return 0
+      ;;
+  esac
+
+  tfv="$(curl -fsSL https://api.releases.hashicorp.com/v1/releases/terraform | grep -oE '"version":"[0-9]+\.[0-9]+\.[0-9]+"' | head -1 | cut -d '"' -f4 || true)"
+  if [ -z "$tfv" ]; then
+    warn "Could not detect latest Terraform version from API"
+    return 0
+  fi
+
+  url="https://releases.hashicorp.com/terraform/${tfv}/terraform_${tfv}_linux_${arch}.zip"
+  run "curl -fsSLo /tmp/terraform.zip '${url}'" || true
+  run "${SUDO:+$SUDO }mkdir -p /usr/local/bin" || true
+  run "${SUDO:+$SUDO }unzip -o /tmp/terraform.zip -d /usr/local/bin" || true
+}
+
+install_with_apt() {
+  run "${SUDO:+$SUDO }apt-get update"
+
+  # Install package-by-package so one missing package doesn't abort the rest.
+  local pkgs=(git curl ca-certificates gnupg lsb-release nodejs npm docker.io docker-compose kubectl unzip)
+  for p in "${pkgs[@]}"; do
+    run "${SUDO:+$SUDO }apt-get install -y ${p}" || warn "apt package not available: ${p}"
+  done
+
+  # Prefer apt helm if available; fallback otherwise.
+  run "${SUDO:+$SUDO }apt-get install -y helm" || true
+  install_helm_fallback
+
+  # Try apt terraform, then fallbacks.
+  run "${SUDO:+$SUDO }apt-get install -y terraform" || true
+  install_terraform_fallback
+
+  # Optional tool.
+  run "${SUDO:+$SUDO }apt-get install -y minikube" || true
+
   if have systemctl; then
-    $SUDO systemctl enable --now docker || true
+    run "${SUDO:+$SUDO }systemctl enable --now docker" || true
   fi
 }
 
 install_with_dnf() {
-  $SUDO dnf -y install git curl nodejs npm docker terraform kubernetes-client helm || true
-  $SUDO dnf -y install minikube || true
-  $SUDO systemctl enable --now docker || true
+  run "${SUDO:+$SUDO }dnf -y install git curl nodejs npm docker kubernetes-client helm terraform" || true
+  run "${SUDO:+$SUDO }dnf -y install minikube" || true
+  run "${SUDO:+$SUDO }systemctl enable --now docker" || true
 }
 
 install_with_yum() {
-  $SUDO yum -y install git curl nodejs npm docker terraform kubectl helm || true
-  $SUDO yum -y install minikube || true
-  $SUDO systemctl enable --now docker || true
+  run "${SUDO:+$SUDO }yum -y install git curl nodejs npm docker kubectl helm terraform" || true
+  run "${SUDO:+$SUDO }yum -y install minikube" || true
+  run "${SUDO:+$SUDO }systemctl enable --now docker" || true
 }
 
 install_with_pacman() {
-  $SUDO pacman -Sy --noconfirm git curl nodejs npm docker docker-compose terraform kubectl helm minikube || true
-  $SUDO systemctl enable --now docker || true
+  run "${SUDO:+$SUDO }pacman -Sy --noconfirm git curl nodejs npm docker docker-compose terraform kubectl helm minikube" || true
+  run "${SUDO:+$SUDO }systemctl enable --now docker" || true
 }
 
 install_with_zypper() {
-  $SUDO zypper --non-interactive install git curl nodejs npm docker terraform kubectl helm minikube || true
-  $SUDO systemctl enable --now docker || true
+  run "${SUDO:+$SUDO }zypper --non-interactive install git curl nodejs npm docker terraform kubectl helm minikube" || true
+  run "${SUDO:+$SUDO }systemctl enable --now docker" || true
 }
 
 install_with_brew() {
-  # On macOS/Linux brew installs cli tools. Docker Desktop may still be needed on macOS.
-  brew update
-  brew install git curl node terraform kubectl helm minikube docker docker-compose || true
+  run "brew update"
+  run "brew install git curl node terraform kubectl helm minikube docker docker-compose" || true
   if [ "$(uname -s)" = "Darwin" ]; then
-    brew install --cask docker || true
+    run "brew install --cask docker" || true
     warn "If Docker commands fail, open Docker Desktop once to start the daemon."
   else
-    warn "On Linux, brew 'docker' is often CLI only. Ensure Docker daemon is installed/running via your distro."
+    warn "On Linux, brew docker is often CLI only. Ensure daemon is installed/running via distro packages."
   fi
 }
 
@@ -111,9 +176,9 @@ case "$PKG_MANAGER" in
   pacman) install_with_pacman ;;
   zypper) install_with_zypper ;;
   brew) install_with_brew ;;
+  *) error "Unsupported package manager override: $PKG_MANAGER"; exit 1 ;;
 esac
 
-# Post-install checks.
 missing=0
 for tool in "${REQUIRED_TOOLS[@]}"; do
   if have "$tool"; then
@@ -139,6 +204,12 @@ if have docker; then
     warn "docker installed, but daemon is not reachable for current user"
     warn "Try: sudo systemctl start docker && sudo usermod -aG docker \$USER && newgrp docker"
   fi
+fi
+
+# In dry-run mode we only validate flow/commands, not actual installation state.
+if [ "${DRY_RUN:-0}" = "1" ]; then
+  success "Dry-run completed."
+  exit 0
 fi
 
 if [ "$missing" -ne 0 ]; then
