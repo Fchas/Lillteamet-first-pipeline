@@ -17,6 +17,8 @@ Week 4 Boiler Room Hackathon - Building a complete CI/CD pipeline with Docker an
 - **Minikube (optional)** - lokal Kubernetes-kluster för test utan moln.
 
 ## Install dependencies (recommended)
+> Run this after cloning the repository and changing into `Lillteamet-first-pipeline`.
+
 Linux/macOS:
 ```bash
 chmod +x scripts/install-deps.sh
