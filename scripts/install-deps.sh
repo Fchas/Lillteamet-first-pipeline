@@ -58,6 +58,21 @@ fi
 
 info "Detected package manager: ${PKG_MANAGER}"
 
+sanitize_apt_repos() {
+  # Handle common failure: stale HashiCorp apt repo on unsupported distro (e.g. kali-rolling).
+  if [ "$PKG_MANAGER" != "apt" ]; then return 0; fi
+  local codename
+  codename="$(lsb_release -cs 2>/dev/null || true)"
+  if [ -f /etc/apt/sources.list.d/hashicorp.list ]; then
+    case "$codename" in
+      kali-rolling|kali*|rolling)
+        warn "Removing unsupported HashiCorp apt repo for '${codename}'"
+        run "${SUDO:+$SUDO }rm -f /etc/apt/sources.list.d/hashicorp.list" || true
+        ;;
+    esac
+  fi
+}
+
 install_helm_fallback() {
   if have helm; then return 0; fi
   warn "Installing Helm via official install script fallback..."
@@ -111,14 +126,28 @@ install_terraform_fallback() {
   run "${SUDO:+$SUDO }unzip -o /tmp/terraform.zip -d /usr/local/bin" || true
 }
 
+install_kubectl_fallback() {
+  if have kubectl; then return 0; fi
+  if [ "$PKG_MANAGER" != "apt" ]; then return 0; fi
+
+  warn "Installing kubectl via Kubernetes apt repo fallback..."
+  run "${SUDO:+$SUDO }mkdir -p /etc/apt/keyrings" || true
+  run "curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | ${SUDO:+$SUDO }gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg" || true
+  run "echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | ${SUDO:+$SUDO }tee /etc/apt/sources.list.d/kubernetes.list >/dev/null" || true
+  run "${SUDO:+$SUDO }apt-get update" || true
+  run "${SUDO:+$SUDO }apt-get install -y kubectl" || true
+}
+
 install_with_apt() {
-  run "${SUDO:+$SUDO }apt-get update"
+  sanitize_apt_repos
+  run "${SUDO:+$SUDO }apt-get update" || true
 
   # Install package-by-package so one missing package doesn't abort the rest.
   local pkgs=(git curl ca-certificates gnupg lsb-release nodejs npm docker.io docker-compose kubectl unzip)
   for p in "${pkgs[@]}"; do
     run "${SUDO:+$SUDO }apt-get install -y ${p}" || warn "apt package not available: ${p}"
   done
+  install_kubectl_fallback
 
   # Prefer apt helm if available; fallback otherwise.
   run "${SUDO:+$SUDO }apt-get install -y helm" || true
