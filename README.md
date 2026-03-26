@@ -15,6 +15,28 @@ git clone https://github.com/Fchas/Lillteamet-first-pipeline.git
 cd Lillteamet-first-pipeline
 ```
 
+### Requirements
+- Git
+- Node.js 18+ and npm
+- Docker (Docker Engine/Desktop)
+- Terraform
+- kubectl
+- Helm
+- Minikube (optional, for local Kubernetes)
+
+### Install dependencies (recommended)
+Linux/macOS:
+```bash
+chmod +x scripts/install-deps.sh
+./scripts/install-deps.sh
+```
+
+Windows (PowerShell as Administrator):
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\scripts\install-deps.ps1
+```
+
 ### 2. Run startup script
 
 Linux/macOS:
