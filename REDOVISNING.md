@@ -45,10 +45,10 @@ Utvecklare pushar kod
 ```mermaid
 flowchart LR
     A[Användare] --> B[App]
-    B --> C[/]
-    B --> D[/status]
+    B --> C["/"]
+    B --> D["/status"]
     C --> E[Enkelt textsvar]
-    D --> F[JSON: status ok + timestamp]
+    D --> F["JSON: status ok + timestamp"]
 ```
 
 ## CI/CD-flöde
