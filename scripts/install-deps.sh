@@ -10,6 +10,7 @@ set -euo pipefail
 
 REQUIRED_TOOLS=(git curl node npm docker terraform kubectl helm)
 OPTIONAL_TOOLS=(minikube)
+MINIKUBE_INSTALL_URL="https://minikube.sigs.k8s.io/docs/start/"
 
 info() { printf '[INFO] %s\n' "$*"; }
 success() { printf '[OK]   %s\n' "$*"; }
@@ -209,6 +210,7 @@ case "$PKG_MANAGER" in
 esac
 
 missing=0
+missing_optional=()
 for tool in "${REQUIRED_TOOLS[@]}"; do
   if have "$tool"; then
     success "$tool installed"
@@ -223,6 +225,7 @@ for tool in "${OPTIONAL_TOOLS[@]}"; do
     success "$tool installed (optional)"
   else
     warn "$tool missing (optional)"
+    missing_optional+=("$tool")
   fi
 done
 
@@ -240,6 +243,14 @@ if [ "${DRY_RUN:-0}" = "1" ]; then
   success "Dry-run completed."
   exit 0
 fi
+
+for tool in "${missing_optional[@]}"; do
+  case "$tool" in
+    minikube)
+      info "To install optional tool '${tool}', see the official guide: ${MINIKUBE_INSTALL_URL}"
+      ;;
+  esac
+done
 
 if [ "$missing" -ne 0 ]; then
   warn "Some required tools are still missing. Check package availability for your distro."
