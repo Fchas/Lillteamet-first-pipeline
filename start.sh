@@ -21,6 +21,8 @@ NC='\033[0m' # No Color
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_NAME="first-pipeline"
 NAMESPACE="first-pipeline"
+PORT_FORWARD_PORT="8080"
+PORT_FORWARD_LOG="/tmp/first-pipeline-port-forward.log"
 
 ###############################################################################
 # Helper Functions
@@ -50,6 +52,28 @@ print_error() {
 
 print_option() {
     echo -e "  ${CYAN}$1)${NC} $2"
+}
+
+start_port_forward() {
+    print_section "Starting port-forward..."
+
+    if pgrep -f "kubectl port-forward -n ${NAMESPACE} svc/${PROJECT_NAME} ${PORT_FORWARD_PORT}:80" >/dev/null 2>&1; then
+        print_info "Port-forward already running on http://localhost:${PORT_FORWARD_PORT}"
+        return 0
+    fi
+
+    nohup kubectl port-forward -n "${NAMESPACE}" svc/"${PROJECT_NAME}" "${PORT_FORWARD_PORT}:80" \
+        >"${PORT_FORWARD_LOG}" 2>&1 &
+
+    sleep 2
+
+    if pgrep -f "kubectl port-forward -n ${NAMESPACE} svc/${PROJECT_NAME} ${PORT_FORWARD_PORT}:80" >/dev/null 2>&1; then
+        print_success "Port-forward started: http://localhost:${PORT_FORWARD_PORT}"
+        print_info "Logs: ${PORT_FORWARD_LOG}"
+    else
+        print_error "Failed to start port-forward automatically"
+        print_info "Run manually: kubectl port-forward -n ${NAMESPACE} svc/${PROJECT_NAME} ${PORT_FORWARD_PORT}:80"
+    fi
 }
 
 ###############################################################################
@@ -181,14 +205,16 @@ start_minikube() {
         
         echo ""
         print_success "Minikube deployment complete!"
+        start_port_forward
         
         echo ""
         print_section "Next Steps:"
-        echo "  To access your application, run:"
+        echo "  Your application should now be available at:"
         echo ""
-        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME 8080:80${NC}"
+        echo -e "    ${GREEN}http://localhost:${PORT_FORWARD_PORT}${NC}"
         echo ""
-        echo "  Then open: http://localhost:8080"
+        echo "  If needed, manual command:"
+        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME ${PORT_FORWARD_PORT}:80${NC}"
         echo ""
         
         print_section "Useful Commands:"
@@ -234,12 +260,13 @@ start_kubernetes() {
         
         echo ""
         print_success "Kubernetes deployment complete!"
+        start_port_forward
         
         echo ""
         print_section "Access Information:"
-        echo "  Use port-forward:"
-        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME 8080:80${NC}"
-        echo "  Then open: http://localhost:8080"
+        echo -e "  URL: ${GREEN}http://localhost:${PORT_FORWARD_PORT}${NC}"
+        echo "  Manual port-forward command:"
+        echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME ${PORT_FORWARD_PORT}:80${NC}"
         
         echo ""
         print_section "Useful Commands:"
@@ -285,12 +312,13 @@ start_helm() {
         -n "$NAMESPACE" --create-namespace
     
     print_success "Helm deployment complete!"
+    start_port_forward
     
     echo ""
     print_section "Access Information:"
-    echo "  Use port-forward:"
-    echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME 8080:80${NC}"
-    echo "  Then open: http://localhost:8080"
+    echo -e "  URL: ${GREEN}http://localhost:${PORT_FORWARD_PORT}${NC}"
+    echo "  Manual port-forward command:"
+    echo -e "    ${CYAN}kubectl port-forward -n $NAMESPACE svc/$PROJECT_NAME ${PORT_FORWARD_PORT}:80${NC}"
     
     echo ""
     print_section "Useful Commands:"

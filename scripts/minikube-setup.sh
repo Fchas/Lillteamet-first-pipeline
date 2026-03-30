@@ -27,10 +27,36 @@ print_error() {
 }
 
 # Configuration
-CLUSTER_NAME="first-pipeline"
+CLUSTER_NAME="first-pipeline-minikube"
 MEMORY="2048"
 CPUS="2"
 DRIVER="docker"
+
+check_docker() {
+    if ! command -v docker &> /dev/null; then
+        print_error "Docker is not installed."
+        return 1
+    fi
+
+    if ! docker ps &> /dev/null; then
+        print_error "Docker daemon is not reachable."
+        print_info "Start Docker and try again."
+        return 1
+    fi
+
+    return 0
+}
+
+cleanup_stale_container() {
+    if ! command -v docker &> /dev/null; then
+        return 0
+    fi
+
+    if docker container inspect "$CLUSTER_NAME" &>/dev/null; then
+        print_info "Found stale Minikube container '${CLUSTER_NAME}', removing it..."
+        docker rm -f "$CLUSTER_NAME" >/dev/null 2>&1 || true
+    fi
+}
 
 # Install Minikube
 install_minikube() {
@@ -74,6 +100,10 @@ install_minikube() {
 # Create Minikube cluster
 create_cluster() {
     print_header "Creating Minikube Cluster"
+
+    if ! check_docker; then
+        return 1
+    fi
     
     # Check if cluster already exists
     if minikube status -p "$CLUSTER_NAME" &>/dev/null; then
@@ -81,6 +111,8 @@ create_cluster() {
         minikube status -p "$CLUSTER_NAME"
         return
     fi
+
+    cleanup_stale_container
     
     print_info "Creating cluster: $CLUSTER_NAME"
     print_info "Driver: $DRIVER, Memory: ${MEMORY}MB, CPUs: $CPUS"
@@ -89,9 +121,7 @@ create_cluster() {
         --profile="$CLUSTER_NAME" \
         --driver="$DRIVER" \
         --memory="$MEMORY" \
-        --cpus="$CPUS" \
-        --container-runtime=docker \
-        --enable-default-cni=true
+        --cpus="$CPUS"
     
     print_success "Minikube cluster created"
 }
