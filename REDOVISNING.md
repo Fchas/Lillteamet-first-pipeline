@@ -171,9 +171,3 @@ Men det innehåller grundläggande drift- och övervakningsfunktioner:
 ## Sammanfattning I En Mening
 
 Detta projekt visar hur en mycket liten applikation kan stöttas av ett enkelt DevSecOps-flöde med testning, containers, CI/CD, Kubernetes-filer, säkerhetskontroller och grundläggande övervakning.
-
-## Kort Version För Presentation
-
-Ni kan säga så här:
-
-> Vi har byggt en liten Node.js-applikation, men huvudmålet var att bygga DevSecOps-flödet runt den. Projektet innehåller testning, Docker, CI/CD med GitHub Actions, Kubernetes-manifest, Helm, Terraform-validering, säkerhetsskanning med Trivy och grundläggande övervakning genom health checks och autoskalning. CI-pipelinen validerar, testar, bygger och skannar projektet, medan deployment kan göras lokalt eller manuellt med hjälp av de Kubernetes- och Helm-filer som finns i repot.
